@@ -53,11 +53,15 @@ function initBike(ride) {
 function addRide(bike, ride) {
   var start = [ride.start_lon, ride.start_lat]
   var end = [ride.end_lon, ride.end_lat];
-  if (start.indexOf("") == -1 && end.indexOf("") == -1) {
+  if (validateTrip(start) && validateTrip(end)) {
     bike.trips.push(start);
     bike.trips.push(end);
   }
   return bike;
+}
+
+function validateTrip(trip) {
+  return trip.indexOf("") == -1 && trip.indexOf("0") == -1;
 }
 
 function sortBikes(a, b) {
