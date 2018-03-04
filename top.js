@@ -26,10 +26,7 @@ var list = [];
 console.log("Processing...");
 quarters.forEach( (quarter, i) => {
   quarter.forEach( (r) => {
-    //bikes[r.bike_id] = typeof(bikes[r.bike_id]) === 'undefined' ? initBike(r) : bikes[r.bike_id];
-    if (typeof(bikes[r.bike_id]) === 'undefined') {
-      bikes[r.bike_id] = initBike(r);
-    }
+    bikes[r.bike_id] = typeof(bikes[r.bike_id]) === 'undefined' ? initBike(r) : bikes[r.bike_id];
     bikes[r.bike_id] = addRide(bikes[r.bike_id], r);
   });
 });
@@ -56,8 +53,10 @@ function initBike(ride) {
 function addRide(bike, ride) {
   var start = [ride.start_lon, ride.start_lat]
   var end = [ride.end_lon, ride.end_lat];
-  bike.trips.push(start);
-  bike.trips.push(end);
+  if (start.indexOf("") == -1 && end.indexOf("") == -1) {
+    bike.trips.push(start);
+    bike.trips.push(end);
+  }
   return bike;
 }
 
