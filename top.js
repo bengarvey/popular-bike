@@ -1,4 +1,5 @@
 var fs = require('fs');
+var stationMeta = require('./data/stationTable.json');
 
 var stats = {
   id: '2679',
@@ -55,7 +56,20 @@ Object.keys(bikes).forEach( (key) => {
 list.sort(sortBikes);
 var topBike = list[0];
 topBike.stats = stats;
+stats.topStations = getTopStations(topBike, stationMeta);
 writeData('data/popular-bike.json',JSON.stringify(list[0]));
+
+function getTopStations(bike, stations) {
+  topList = [];
+  stationList = Object.keys(bike.stats.stations);
+  stationList.forEach( (station) => {
+    topList.push(
+      {id: station, trips: bike.stats.stations[station], name: stations[station].name}
+    );
+  });
+  topList.sort( (a,b) => { return b.trips - a.trips } );
+  return topList;
+}
 
 function checkStats(ride, stats) {
   var start = [ride.start_lon, ride.start_lat]
