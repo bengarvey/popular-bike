@@ -1,5 +1,17 @@
 var fs = require('fs');
 
+var stats = {
+  id: '2679',
+  trips: 0,
+  stations: {},
+  longestDistance: 0,
+  longestDistanceMeta: {},
+  longestDuration: 0,
+  longestDurationMeta: {},
+  totalDistance: 0,
+  totalDuration: 0
+};
+
 var files = [
   'q2-15.json',
   'q3-15.json',
@@ -28,10 +40,13 @@ quarters.forEach( (quarter, i) => {
   quarter.forEach( (r) => {
     bikes[r.bike_id] = typeof(bikes[r.bike_id]) === 'undefined' ? initBike(r) : bikes[r.bike_id];
     bikes[r.bike_id] = addRide(bikes[r.bike_id], r);
+    stats = checkStats(r, stats);
   });
 });
 
-console.log("Hashtable built...");
+stats.avgDuration = stats.totalDuration / stats.trips;
+stats.avgDistance = stats.totalDistance / stats.trips;
+console.log("Table built...");
 
 Object.keys(bikes).forEach( (key) => {
   list.push(bikes[key]);
@@ -39,9 +54,44 @@ Object.keys(bikes).forEach( (key) => {
 
 list.sort(sortBikes);
 var topBike = list[0];
-console.log(`Top Bike: ${topBike.id}`);
-console.log(`Trips: ${topBike.trips.length/2}`);
+topBike.stats = stats;
 writeData('data/popular-bike.json',JSON.stringify(list[0]));
+
+function checkStats(ride, stats) {
+  var start = [ride.start_lon, ride.start_lat]
+  var end = [ride.end_lon, ride.end_lat];
+  if (validateTrip(start) && validateTrip(end) && ride.bike_id == stats.id) {
+    stats = recordStats(ride, stats);
+  }
+  return stats;
+}
+
+function recordStats(ride, stats) {
+  stats.trips += 1;
+  stats.totalDuration += parseInt(ride.duration);
+  stats.stations[ride.start_station_id] = init(stats.stations[ride.start_station_id], stats.stations[ride.start_station_id]) + 1;
+  stats.stations[ride.end_station_id] = init(stats.stations[ride.end_station_id], stats.stations[ride.end_station_id]) + 1;
+  var distance = getMiles(ride.start_lat, ride.start_lon, ride.end_lat, ride.end_lon);
+  ride.distance = distance;
+
+  if (stats.longestDuration < parseInt(ride.duration)) {
+    stats.longestDuration = parseInt(ride.duration);
+    stats.longestDurationMeta = ride;
+  }
+
+  stats.totalDistance += distance;
+
+  if (stats.longestDistance < distance) {
+    stats.longestDistance = distance;
+    stats.longestDistanceMeta = ride;
+  }
+
+  return stats;
+}
+
+function init(item, value) {
+  return typeof(item) === 'undefined' ? 0 : value;
+}
 
 function initBike(ride) {
   return {
@@ -61,7 +111,7 @@ function addRide(bike, ride) {
 }
 
 function validateTrip(trip) {
-  return trip.indexOf("") == -1 && trip.indexOf("0") == -1;
+  return trip.indexOf("") == -1 && trip.indexOf("0") == -1 && trip.indexOf("\\N") == -1;
 }
 
 function sortBikes(a, b) {
@@ -78,3 +128,26 @@ function writeData(file, data) {
     }
   });
 }
+
+function toRadians(num) {
+    return num * Math.PI / 180;
+}
+
+// https://www.movable-type.co.uk/scripts/latlong.html
+function getMiles(lat1, lon1, lat2, lon2) {
+  var R = 6371e3; // metres
+  var φ1 = parseFloat(toRadians(lat1));
+  var φ2 = parseFloat(toRadians(lat2));
+  var Δφ = toRadians(parseFloat(lat2)-parseFloat(lat1));
+  var Δλ = toRadians(parseFloat(lon2)-parseFloat(lon1));
+
+  var a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+          Math.cos(φ1) * Math.cos(φ2) *
+          Math.sin(Δλ/2) * Math.sin(Δλ/2);
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+  var d = R * c;
+  return d*0.000621371192;
+}
+
+  
