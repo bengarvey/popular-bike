@@ -56,6 +56,7 @@ Object.keys(bikes).forEach( (key) => {
 list.sort(sortBikes);
 var topBike = list[0];
 topBike.stats = stats;
+console.log(stats);
 stats.topStations = getTopStations(topBike, stationMeta);
 writeData('data/popular-bike.json',JSON.stringify(list[0]));
 
