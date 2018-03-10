@@ -1,5 +1,6 @@
 var fs = require('fs');
 var stationMeta = require('./data/stationTable.json');
+var muralBikes = require('./data/muralBikes.json');
 
 var stats = {
   id: '2679',
@@ -53,11 +54,64 @@ Object.keys(bikes).forEach( (key) => {
   list.push(bikes[key]);
 });
 
-list.sort(sortBikes);
+console.log("Total Bikes:" + list.length);
+
+list.forEach( (bike, index) => {
+  bike.isMural = isMuralBike(bike.id, muralBikes);
+  bike.timeInService = bike.last - bike.first;
+  bike.tripsPerDay = (bike.trips.length/2) / (bike.timeInService / 1000 / 60 / 60 / 24)
+});
+
+list = list.sort(sortBikesTripsPerDay);
 var topBike = list[0];
 topBike.stats = stats;
 console.log(stats);
 stats.topStations = getTopStations(topBike, stationMeta);
+
+var normalTrips = 0;
+var muralArtsTrips = 0;
+var totalNormalBikes = 0;
+var totalMuralArtsBikes = 0;
+var muralArtsTotalTripsPerDay = 0;
+var normalTotalTripsPerDay = 0;
+var normalTimeInService = 0;
+var muralArtsTimeInService = 0;
+
+list.forEach( (bike, index) => {
+  if (bike.isMural) {
+    totalMuralArtsBikes += 1;
+    muralArtsTotalTripsPerDay += bike.tripsPerDay;
+    muralArtsTrips += bike.trips.length/2;
+    muralArtsTimeInService += bike.timeInService;
+  }
+  else {
+    totalNormalBikes += 1;
+    normalTotalTripsPerDay += bike.tripsPerDay;
+    normalTrips += bike.trips.length/2;
+    normalTimeInService += bike.timeInService;
+  }
+});
+
+stats.overall = {
+  avgTrips: {
+    normal: normalTrips / totalNormalBikes,
+    muralArts: muralArtsTrips / totalMuralArtsBikes
+  },
+  avgTripsPerDay: {
+    normal: normalTotalTripsPerDay / totalNormalBikes,
+    muralArts: muralArtsTotalTripsPerDay / totalMuralArtsBikes
+  },
+  avgTimeInService: {
+    normal: normalTimeInService / totalNormalBikes,
+    muralArts: muralArtsTimeInService / totalMuralArtsBikes
+  }
+  ,
+  bikes: {
+    normal: totalNormalBikes,
+    muralArts: totalMuralArtsBikes
+  }
+}
+
 writeData('data/popular-bike.json',JSON.stringify(list[0]));
 
 function getTopStations(bike, stations) {
@@ -111,6 +165,8 @@ function init(item, value) {
 function initBike(ride) {
   return {
     trips: [],
+    first: null,
+    last: null,
     id: ride.bike_id
   }
 }
@@ -121,6 +177,17 @@ function addRide(bike, ride) {
   if (validateTrip(start) && validateTrip(end)) {
     bike.trips.push(start);
     bike.trips.push(end);
+  }
+  bike = addDate(bike, ride);
+  return bike;
+}
+
+function addDate(bike, ride) {
+  if (bike.first == null || bike.first > new Date(ride.start_time)) {
+    bike.first = new Date(ride.start_time);
+  }
+  if (bike.last == null || bike.last < new Date(ride.end_time)) {
+    bike.last = new Date(ride.end_time);
   }
   return bike;
 }
@@ -133,6 +200,9 @@ function sortBikes(a, b) {
   return b.trips.length - a.trips.length;
 }
 
+function sortBikesTripsPerDay(a, b) {
+  return b.tripsPerDay - a.tripsPerDay;
+}
 function writeData(file, data) {
   fs.writeFile(file, data, (err) => {
     if (err) {
@@ -165,4 +235,6 @@ function getMiles(lat1, lon1, lat2, lon2) {
   return d*0.000621371192;
 }
 
-  
+function isMuralBike(id, list) {
+  return list.indexOf(id) > -1;
+}
