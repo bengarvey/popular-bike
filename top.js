@@ -62,7 +62,7 @@ list.forEach( (bike, index) => {
   bike.tripsPerDay = (bike.trips.length/2) / (bike.timeInService / 1000 / 60 / 60 / 24)
 });
 
-list = list.sort(sortBikesTripsPerDay);
+list = list.sort(sortBikes);
 var topBike = list[0];
 topBike.stats = stats;
 console.log(stats);
